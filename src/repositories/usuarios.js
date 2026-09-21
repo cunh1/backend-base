@@ -3,8 +3,10 @@ import { db } from '../db/connection.js';
 // Toda a conversa com a tabela fica aqui. As rotas nunca escrevem SQL.
 // Os prepare() ficam dentro das funções de propósito: assim o módulo pode ser
 // importado antes das migrações rodarem (a tabela ainda pode não existir).
+// Os campos são listados um a um para que senha_hash jamais vá parar numa resposta.
+// (Contas são criadas por /auth/registrar, que exige senha.)
 
-const CAMPOS = 'id, nome, email, telefone, criado_em, atualizado_em';
+const CAMPOS = 'id, nome, email, telefone, papel, email_verificado_em, criado_em, atualizado_em';
 
 export function listar() {
   return db.prepare(`SELECT ${CAMPOS} FROM usuarios ORDER BY id`).all();
@@ -12,13 +14,6 @@ export function listar() {
 
 export function buscar(id) {
   return db.prepare(`SELECT ${CAMPOS} FROM usuarios WHERE id = ?`).get(id);
-}
-
-export function criar({ nome, email, telefone = null }) {
-  const info = db
-    .prepare('INSERT INTO usuarios (nome, email, telefone) VALUES (?, ?, ?)')
-    .run(nome, email, telefone);
-  return buscar(info.lastInsertRowid);
 }
 
 export function atualizar(id, { nome, email, telefone = null }) {

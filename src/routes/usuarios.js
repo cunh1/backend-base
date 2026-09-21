@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as usuarios from '../repositories/usuarios.js';
 
+// Este router é montado atrás de exigirLogin + exigirPapel('admin') (veja app.js).
 const router = Router();
 
 function validar(corpo) {
@@ -33,12 +34,6 @@ router.get('/:id', (req, res) => {
   const usuario = idDe(req) !== null && usuarios.buscar(idDe(req));
   if (!usuario) return naoEncontrado(res);
   res.json(usuario);
-});
-
-router.post('/', (req, res) => {
-  const erros = validar(req.body);
-  if (erros.length) return res.status(400).json({ erros });
-  res.status(201).json(usuarios.criar(limpar(req.body)));
 });
 
 router.put('/:id', (req, res) => {

@@ -5,7 +5,14 @@ export function cabecalhosSeguros(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'"); // a API só devolve JSON
+  // A tela /admin é HTML com script e estilo inline, então precisa de 'self' + 'unsafe-inline'.
+  // O resto da API só devolve JSON, então continua com a política mais restrita.
+  res.setHeader(
+    'Content-Security-Policy',
+    req.path === '/admin' || req.path === '/admin.html'
+      ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+      : "default-src 'none'; frame-ancestors 'none'",
+  );
   if (config.producao) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 }

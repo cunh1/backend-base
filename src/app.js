@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import { config } from './config.js';
 import { ErroHttp } from './erros.js';
@@ -17,8 +18,13 @@ app.use(verificarOrigem);
 app.use(express.json({ limit: '10kb' }));
 app.use(carregarSessao);
 
-app.get('/', (req, res) => res.json({ api: 'meu-sistema', rotas: ['/saude', '/auth', '/usuarios'] }));
+// Tela visual do admin, servida pela própria API: mesma origem do cookie, sem CORS a configurar.
+const pastaPublica = path.join(import.meta.dirname, '..', 'public');
+app.use(express.static(pastaPublica));
+app.get('/admin', (req, res) => res.sendFile(path.join(pastaPublica, 'admin.html')));
+
 app.get('/saude', (req, res) => res.json({ ok: true }));
+app.get('/api', (req, res) => res.json({ api: 'meu-sistema', rotas: ['/saude', '/auth', '/usuarios', '/admin'] }));
 
 app.use('/auth', semCache, authRouter);
 app.use('/usuarios', exigirLogin, exigirPapel('admin'), usuariosRouter);

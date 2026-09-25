@@ -22,6 +22,9 @@
   label { display: block; font-size: 13px; color: var(--texto-fraco); margin: 14px 0 6px; }
   input { width: 100%; padding: 9px 11px; border: 1px solid var(--borda); border-radius: 7px; font-size: 14px; }
   input:focus { outline: 2px solid var(--azul); outline-offset: -1px; }
+  select { width: 100%; padding: 9px 11px; border: 1px solid var(--borda); border-radius: 7px; font-size: 14px; background: #fff; }
+  select:focus { outline: 2px solid var(--azul); outline-offset: -1px; }
+  .texto-fraco { color: var(--texto-fraco); font-size: 12px; margin-top: 4px; }
   button { cursor: pointer; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; padding: 9px 14px; }
   .botao-primario { background: var(--azul); color: #fff; width: 100%; margin-top: 20px; }
   .botao-primario:hover { background: var(--azul-escuro); }
@@ -77,7 +80,10 @@
     <div class="painel">
       <div class="barra-topo">
         <h2>Usuários</h2>
-        <button class="botao-secundario" id="botaoAtualizar">Atualizar</button>
+        <div style="display:flex; gap:8px;">
+          <button class="botao-secundario" id="botaoAtualizar">Atualizar</button>
+          <button class="botao-primario" style="width:auto; margin-top:0;" id="botaoNovoUsuario">Novo usuário</button>
+        </div>
       </div>
       <div id="areaTabela"></div>
     </div>
@@ -93,10 +99,38 @@
     <input id="editEmail" type="email" required>
     <label for="editTelefone">Telefone</label>
     <input id="editTelefone">
+    <label for="editPapel">Papel</label>
+    <select id="editPapel">
+      <option value="usuario">Usuário</option>
+      <option value="admin">Administrador</option>
+    </select>
     <div id="editErro" class="aviso"></div>
     <div class="dialogo-rodape">
       <button type="button" class="botao-secundario" id="botaoCancelarEdicao">Cancelar</button>
       <button type="submit" class="botao-primario" style="width:auto;">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dialogoNovo">
+  <form class="dialogo-corpo" id="formNovo" method="dialog">
+    <h3>Novo usuário</h3>
+    <label for="novoNome">Nome</label>
+    <input id="novoNome" required>
+    <label for="novoEmail">E-mail</label>
+    <input id="novoEmail" type="email" required>
+    <label for="novoSenha">Senha</label>
+    <input id="novoSenha" type="password" autocomplete="new-password" required>
+    <div class="texto-fraco">Mínimo de 12 caracteres.</div>
+    <label for="novoPapel">Papel</label>
+    <select id="novoPapel">
+      <option value="usuario">Usuário</option>
+      <option value="admin">Administrador</option>
+    </select>
+    <div id="novoErro" class="aviso"></div>
+    <div class="dialogo-rodape">
+      <button type="button" class="botao-secundario" id="botaoCancelarNovo">Cancelar</button>
+      <button type="submit" class="botao-primario" style="width:auto;">Criar</button>
     </div>
   </form>
 </dialog>
@@ -187,6 +221,34 @@ el("botaoSair").addEventListener("click", async () => {
 
 el("botaoAtualizar").addEventListener("click", carregarUsuarios);
 
+el("botaoNovoUsuario").addEventListener("click", () => {
+  esconderErro("novoErro");
+  el("formNovo").reset();
+  el("dialogoNovo").showModal();
+});
+el("botaoCancelarNovo").addEventListener("click", () => el("dialogoNovo").close());
+
+el("formNovo").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  esconderErro("novoErro");
+  try {
+    await chamarApi("/usuarios", {
+      method: "POST",
+      corpo: {
+        nome: el("novoNome").value.trim(),
+        email: el("novoEmail").value.trim(),
+        senha: el("novoSenha").value,
+        papel: el("novoPapel").value,
+      },
+    });
+    el("dialogoNovo").close();
+    carregarUsuarios();
+  } catch (erro) {
+    const lista = erro.detalhes && erro.detalhes.erros ? erro.detalhes.erros.join("; ") : erro.message;
+    mostrarErro("novoErro", lista);
+  }
+});
+
 async function carregarUsuarios() {
   const area = el("areaTabela");
   area.innerHTML = '<div class="vazio">Carregando…</div>';
@@ -198,7 +260,7 @@ async function carregarUsuarios() {
     }
     area.innerHTML = `
       <table>
-        <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>E-mail</th><th></th></tr></thead>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Confirmado</th><th></th></tr></thead>
         <tbody>${usuarios.map(linhaUsuario).join("")}</tbody>
       </table>`;
   } catch (erro) {
@@ -236,6 +298,7 @@ window.abrirEdicao = async function (id) {
     el("editNome").value = u.nome;
     el("editEmail").value = u.email;
     el("editTelefone").value = u.telefone || "";
+    el("editPapel").value = u.papel;
     el("dialogoEditar").showModal();
   } catch (erro) {
     alert("Não foi possível abrir: " + erro.message);
@@ -254,6 +317,7 @@ el("formEditar").addEventListener("submit", async (evento) => {
         nome: el("editNome").value.trim(),
         email: el("editEmail").value.trim(),
         telefone: el("editTelefone").value.trim() || null,
+        papel: el("editPapel").value,
       },
     });
     el("dialogoEditar").close();

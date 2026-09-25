@@ -28,6 +28,23 @@ export function criarComSenha({ nome, email, senhaHash }) {
   return info.changes ? { criado: true, id: Number(info.lastInsertRowid) } : { criado: false };
 }
 
+/**
+ * Cria o usuário pelo painel do admin: já com papel definido e e-mail confirmado
+ * (quem cria já respondeu pela conta, então não faz sentido pedir confirmação por e-mail).
+ * Se o e-mail já existe, não altera nada e devolve { criado: false } (o admin já vê isso pelo 409 da rota).
+ */
+export function criarPeloAdmin({ nome, email, senhaHash, papel }) {
+  const agora = paraSql();
+  const info = db
+    .prepare(
+      `INSERT INTO usuarios (nome, email, senha_hash, papel, email_verificado_em, senha_alterada_em)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT DO NOTHING`,
+    )
+    .run(nome, email, senhaHash, papel, agora, agora);
+  return info.changes ? { criado: true, id: Number(info.lastInsertRowid) } : { criado: false };
+}
+
 export function definirSenha(id, senhaHash) {
   db.prepare("UPDATE usuarios SET senha_hash = ?, senha_alterada_em = ?, atualizado_em = datetime('now') WHERE id = ?")
     .run(senhaHash, paraSql(), id);

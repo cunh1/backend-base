@@ -1,13 +1,6 @@
-// Sobe o backend e mantém o frontend compilado automaticamente a cada mudança, os dois
-// com prefixo colorido no mesmo terminal. Diferente da versão anterior, o frontend NÃO
-// roda mais no Vite dev server (porta 5173): ele é compilado para frontend/dist e a
-// própria API (porta 3000) passa a servir esse build — um endereço só para tudo.
-//
-// Ctrl+C (ou um dos dois caindo) encerra os dois de verdade, árvore de processos inteira
-// incluída. O "npm run build" por baixo chama outro processo (sh/cmd -> node -> vite), e
-// matar só o processo de cima costuma deixar esse processo de baixo rodando escondido.
-// Por isso: no Windows, taskkill /T mata a árvore toda; no Mac/Linux, cada processo nasce
-// líder do próprio grupo (detached) e é todo esse grupo que recebe o sinal de encerrar.
+// Versão antiga: backend na porta 3000 e frontend no Vite dev server (porta 5173),
+// cada um na sua porta, com hot-reload instantâneo do React. Use "npm run dev:all"
+// para o modo padrão (tudo em localhost:3000); use este só se precisar do HMR do Vite.
 import { spawn, execSync } from 'node:child_process';
 import path from 'node:path';
 
@@ -17,9 +10,7 @@ const npm = windows ? 'npm.cmd' : 'npm';
 
 const processos = [
   { rotulo: 'backend ', cor: '36', cmd: 'node', args: ['--watch', 'src/server.js'], cwd: raiz },
-  // "npm run build -- --watch" chama "vite build --watch": recompila para frontend/dist
-  // a cada alteração, sem subir um servidor próprio — quem serve é o backend.
-  { rotulo: 'frontend', cor: '35', cmd: npm, args: ['run', 'build', '--', '--watch'], cwd: path.join(raiz, 'frontend') },
+  { rotulo: 'frontend', cor: '35', cmd: npm, args: ['run', 'dev'], cwd: path.join(raiz, 'frontend') },
 ];
 
 function prefixar(rotulo, cor, texto) {
@@ -38,12 +29,12 @@ function matar(filho) {
     try {
       execSync(`taskkill /pid ${filho.pid} /T /F`, { stdio: 'ignore' });
     } catch {
-      // processo já tinha encerrado sozinho — tudo bem
+      // processo já tinha encerrado sozinho
     }
     return;
   }
   try {
-    process.kill(-filho.pid, 'SIGTERM'); // "-pid" = grupo inteiro, não só o processo
+    process.kill(-filho.pid, 'SIGTERM');
   } catch {
     try {
       filho.kill('SIGKILL');
@@ -70,11 +61,10 @@ function encerrarTodos() {
   if (encerrando) return;
   encerrando = true;
   for (const filho of filhos) matar(filho);
-  setTimeout(() => process.exit(0), 300); // dá um instante para os sinais serem processados
+  setTimeout(() => process.exit(0), 300);
 }
 
 process.on('SIGINT', encerrarTodos);
 process.on('SIGTERM', encerrarTodos);
 
-console.log('Compilando o frontend e subindo o backend. Tudo em http://localhost:3000 — espere');
-console.log('a primeira compilação do [frontend] terminar antes de abrir no navegador. Ctrl+C encerra os dois.\n');
+console.log('Subindo backend (http://localhost:3000) e frontend (http://localhost:5173). Ctrl+C encerra os dois.\n');
